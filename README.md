@@ -1,16 +1,14 @@
-# Superstore Discount Calculator — Master Documentation
+# Superstore Discount Predictor — Machine Learning Documentation
 
-An advanced, flat corporate-style decision support calculator that uses a trained scikit-learn preprocessing pipeline and an XGBoost Regressor model (`model.pkl`) to calculate optimal order discounts.
+This repository contains an AI-driven predictive model designed to calculate optimal order discounts. By leveraging historical transaction records, the model serves as a decision support system to help maintain healthy profit margins and optimize pricing strategies.
 
 ---
 
 ## 📖 Table of Contents
 1. [Business Value & Goal](#1-business-value--goal)
 2. [Dataset Overview](#2-dataset-overview)
-3. [Machine Learning Pipeline (`model.pkl`)](#3-machine-learning-pipeline-modelpkl)
-4. [Application Architecture](#4-application-architecture)
-5. [Directory Structure](#5-directory-structure)
-6. [Installation & Local Run](#6-installation--local-run)
+3. [Machine Learning Pipeline](#3-machine-learning-pipeline)
+4. [Model Performance & Architecture](#4-model-performance--architecture)
 
 ---
 
@@ -18,129 +16,64 @@ An advanced, flat corporate-style decision support calculator that uses a traine
 
 In retail operations, offering discounts is a delicate balancing act. Over-discounting erodes profit margins, while under-discounting can result in lost sales volume or customer churn. 
 
-This tool serves as an **AI-driven decision support system** for sales managers. By inputting logistics, geographic destination, category, and desired transaction numbers, the AI model calculates the historically expected discount level. This helps prevent margins from slipping into unprofitable territories.
+This project uses an **AI-driven predictive model** to analyze historical logistics, geographic destinations, product categories, and transaction financials. By feeding these parameters into the trained model, it calculates the historically expected discount level, ensuring sales operations prevent margins from slipping into unprofitable territories.
 
 ---
 
 ## 2. Dataset Overview
 
-The model is trained on the standard **Superstore Dataset** (`Sample - Superstore.csv`). The pipeline reads the following columns as input features:
+The model is trained on the standard **Superstore Dataset** (`Sample - Superstore.csv`). The pipeline reads and processes the following features to generate predictions:
 
-### Categorical Columns
-*   **Ship Mode:** `Standard Class`, `Second Class`, `First Class`, `Same Day` (Affects urgency and delivery overheads).
-*   **Segment:** `Consumer`, `Corporate`, `Home Office` (Identifies buyer demographic and scale).
-*   **Region:** `Central`, `East`, `South`, `West` (Geographic shipping region).
-*   **State & City:** Geographic metrics containing 49 unique US states and 531 unique cities (Impacts local taxation, distribution costs, and logistics).
-*   **Category:** `Furniture`, `Office Supplies`, `Technology` (Defines high-level product margins).
-*   **Sub-Category:** 17 unique values including `Bookcases`, `Appliances`, `Phones`, etc. (Granular product identification).
+### Categorical Features
+* **Ship Mode:** `Standard Class`, `Second Class`, `First Class`, `Same Day` (Reflects urgency and delivery overheads).
+* **Segment:** `Consumer`, `Corporate`, `Home Office` (Identifies buyer demographic and scale).
+* **Region:** `Central`, `East`, `South`, `West` (Geographic shipping region).
+* **State & City:** Geographic metrics covering unique US territories (Impacts local taxation, distribution costs, and logistics).
+* **Category:** `Furniture`, `Office Supplies`, `Technology` (Defines high-level product margins).
+* **Sub-Category:** Granular product identification (e.g., `Bookcases`, `Appliances`, `Phones`, `Chairs`).
 
-### Numerical Columns
-*   **Sales ($):** Total transaction value before discount.
-*   **Quantity:** Count of items ordered.
-*   **Profit ($):** Net profit earned from the sale.
-
----
-
-## 3. Machine Learning Pipeline (`model.pkl`)
-
-The model is stored as a serialized scikit-learn `Pipeline` object consisting of two distinct stages: a preprocessor and a regression estimator.
-
-```mermaid
-graph TD
-    A[Raw Input JSON] --> B[Pandas DataFrame]
-    B --> C[ColumnTransformer]
-    C --> D[Numerical Pipeline]
-    C --> E[Categorical Encoder]
-    D --> D1[StandardScaler]
-    D1 --> D2[PCA]
-    E --> E1[OneHotEncoder]
-    D2 --> F[Feature Assembler]
-    E1 --> F
-    F --> G[XGBoost Regressor]
-    G --> H[Optimal Discount Prediction]
-```
-
-### Stage 1: Preprocessor (`ColumnTransformer`)
-Features are separated by data types and sent through distinct preprocessing paths:
-*   **Numerical Path (`num`):**
-    1.  **`StandardScaler`:** Standardizes numeric columns (`Sales`, `Quantity`, `Profit`) by centering the mean to `0` and scaling the standard deviation to `1`.
-    2.  **`PCA` (Principal Component Analysis):** Reduces dimensionality to simplify collinear numerical features down to components.
-*   **Categorical Path (`cat`):**
-    1.  **`OneHotEncoder`:** Encodes nominal text fields (like `Ship Mode`, `Segment`, `City`, etc.) into sparse binary columns, ignoring unknown labels safely.
-
-### Stage 2: Predictor (`XGBRegressor`)
-The processed feature array is fed into a trained **Extreme Gradient Boosting Regressor** (`XGBRegressor`). 
-*   **Algorithm:** Gradient Boosted Decision Trees configured with 200 estimators and a max tree depth of 7 to model non-linear interactions between profit, category, and discounts.
+### Numerical Features
+* **Sales ($):** Total transaction value before the discount is applied.
+* **Quantity:** Total count of items ordered in a single transaction.
+* **Profit ($):** Net profit earned from the sale, utilized to understand baseline historical margins.
 
 ---
 
-## 4. Application Architecture
+## 3. Machine Learning Pipeline
 
-To keep the codebase streamlined and lightweight, the application consists of two main active files:
+The machine learning workflow is bundled into a structured, reproducible scikit-learn `Pipeline` object. This architecture ensures that raw data inputs are seamlessly transformed before being passed to the predictive estimator.
 
-### Backend Server (`app.py`)
-A Python Flask backend that:
-*   Loads `model.pkl` globally once at startup for instant model response.
-*   Exposes a POST `/predict` API endpoint to parse, validate type structures, and run model predictions on dataframes.
-*   Serves the main HTML template.
 
-### Unified Frontend UI (`templates/index.html`)
-The entire user interface, visual styling, and interaction logic are consolidated into **under 250 lines of code** inside `index.html`:
-*   **HTML Structure:** Defines the form inputs (logistics, destination, product details, financials) and output display panels.
-*   **CSS Styles (Inline `<style>`):** Implements a clean, flat corporate theme, with comfortable spacing, slate-colored text variables, and solid colors (no heavy neon effects or glows).
-*   **JavaScript (Inline `<script>`):** 
-    *   Loads states and cities dynamically on page load using a local static JSON file.
-    *   Ensures category-to-subcategory dropdown validation consistency.
-    *   Asynchronously fetches calculations from the `/predict` API without reloading.
-    *   Displays sales margins and warning messages based on profit numbers.
 
----
+### Stage 1: Preprocessing (`ColumnTransformer`)
+Features are automatically split by data type and processed through isolated pipelines:
 
-## 5. Directory Structure
+* **Numerical Data Path:**
+    1.  **`StandardScaler`:** Standardizes numeric features (`Sales`, `Quantity`, `Profit`) by centering the mean to `0` and scaling the variance to `1`.
+    2.  **`PCA` (Principal Component Analysis):** Reduces dimensionality and extracts core variance components to eliminate potential multi-collinearity among financial metrics.
+* **Categorical Data Path:**
+    1.  **`OneHotEncoder`:** Transforms nominal text strings into sparse binary vectors, enabling the mathematical models to read categorical elements while safely ignoring unknown labels.
 
-The project has been refactored to minimize the number of files:
+### Stage 2: Predictive Estimator (`XGBRegressor`)
+The completely preprocessed and assembled feature array is passed directly into a trained **Extreme Gradient Boosting Regressor** (`XGBRegressor`).
 
-```text
-Superstore/
-│
-├── app.py                     # Flask server file (loads model, handles routing and predictions API)
-├── model.pkl                  # Trained Machine Learning pipeline (XGBoost Regressor + ColumnTransformer)
-├── Sample - Superstore.csv    # Raw dataset log file
-├── Superstore.ipynb           # Original analysis and libraries setup notebook
-├── README.md                  # Detailed project guide (This file)
-│
-├── templates/
-│   └── index.html             # Consolidated frontend UI (HTML + CSS Styles + JavaScript Script)
-│
-└── static/
-    └── state_city_map.json    # Pre-compiled mapping linking states to unique cities
-```
+* **Core Logic:** Gradient Boosted Decision Trees iteratively minimize prediction errors by building subsequent trees focused on structural residuals.
+* **Hyperparameters:** Configured with 200 estimators and a maximum tree depth of 7 to accurately capture complex, non-linear correlations between structural profit margins, product sub-categories, and resulting optimal discounts.
 
 ---
 
-## 6. Installation & Local Run
+## 4. Model Performance & Architecture
 
-### Installation
-1. Ensure you have Python installed.
-2. Install the server package:
-    ```bash
-    pip install flask
-    ```
+The final architecture is compiled into a single, highly transportable binary file:
 
-### Running the App
-1. Open your terminal in the directory where `app.py` resides.
-2. Start Flask:
-    ```bash
-    python app.py
-    ```
-3. Open `http://127.0.0.1:5000` in your web browser.
-
-### Troubleshooting
-*   **`ModuleNotFoundError: No module named 'xgboost'`:** Ensure all machine learning packages are installed locally in your environment:
-    ```bash
-    pip install pandas scikit-learn xgboost
-    ```
-*   **Port 5000 already in use:** If port 5000 is occupied, you can change the port parameter at the bottom of `app.py`:
+* **`model.pkl`:** A completely self-contained serialized file housing both the trained preprocessing transformers (`StandardScaler`, `OneHotEncoder`, `PCA`) and the finalized `XGBRegressor` decision trees.
+* **Implementation:** The pipeline can be loaded instantly into any Python data environment to make predictions on new data batches without requiring separate manual data encoding steps:
     ```python
-    app.run(debug=True, host='127.0.0.1', port=5001)
+    import joblib
+    
+    # Load the standalone model pipeline
+    model = joblib.load('model.pkl')
+    
+    # Ready to predict optimal discount rates
+    # predictions = model.predict(new_dataframe)
     ```
